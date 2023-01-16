@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ManagingFilesAndDirectories": {
+      "commandName": "Project",
+      "commandLineArgs": "--dir c:\\psdata\\in TEXT"
+    }
+  }
+}
