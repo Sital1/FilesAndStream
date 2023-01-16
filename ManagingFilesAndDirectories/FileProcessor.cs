@@ -87,7 +87,10 @@ namespace ManagingFilesAndDirectories
 			File.Move(inProgressFilePath, completedFilePath);
 
 			string inProgressDirectoryPath = Path.GetDirectoryName(inProgressFilePath);
-			Directory.Delete(inProgressDirectoryPath, true);
+
+			// this may cause error when processing multiple files at the same time.
+			// one file process deletes this directory which means, the other cannot acess it
+			//Directory.Delete(inProgressDirectoryPath, true);
 		}
 
 		private void ProcessTextFile(string inProgressFilePath)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Runtime.Caching;
 using System.Timers;
 using static System.Console;
 
@@ -7,8 +8,10 @@ namespace ManagingFilesAndDirectories
 {
 	public class Program
 	{
-		// A thread safe dictionary
-		private static ConcurrentDictionary<string, string> FilesToProcess = new ConcurrentDictionary<string, string>();
+		//// A thread safe dictionary
+		//private static ConcurrentDictionary<string, string> FilesToProcess = new ConcurrentDictionary<string, string>();
+		private static MemoryCache FilesToProcess = MemoryCache.Default;
+
 		static void Main(string[] args)
 		{
 			WriteLine("Parsing command line options");
@@ -22,9 +25,11 @@ namespace ManagingFilesAndDirectories
 			{
 				WriteLine($"Watching directory {directoryToWatch} for changes");
 
+				ProcessExistingFiles(directoryToWatch);
+
 				// make sure to use using statement
 				using var inputFileWatcher = new FileSystemWatcher(directoryToWatch);
-				using var timer = new System.Threading.Timer(ProcessFiles, null, 0, 1000);
+				//using var timer = new System.Threading.Timer(ProcessFiles, null, 0, 1000);
 
 				// configure
 				inputFileWatcher.IncludeSubdirectories = false;
@@ -82,15 +87,19 @@ namespace ManagingFilesAndDirectories
 			//ReadLine();
 		}
 
+
+
 		private static void FileCreated(object sender, FileSystemEventArgs e)
 		{
 			WriteLine($"* File created {e.Name} - type: {e.ChangeType}");
-			FilesToProcess.TryAdd(e.FullPath, e.FullPath);
+			AddToCache(e.FullPath);
 		}
+
+
 		private static void FileChanged(object sender, FileSystemEventArgs e)
 		{
 			WriteLine($"* File changed {e.Name} - type: {e.ChangeType}");
-			FilesToProcess.TryAdd(e.FullPath, e.FullPath);
+			AddToCache(e.FullPath);
 		}
 
 		private static void FileDeleted(object sender, FileSystemEventArgs e)
@@ -110,16 +119,76 @@ namespace ManagingFilesAndDirectories
 			WriteLine($"Error: file system watcher may no longer be active: {e.GetException()}");
 		}
 
-		private static void ProcessFiles(object stateInfo)
+
+
+
+
+		private static void AddToCache(string fullPath)
 		{
-			foreach (var fileName in FilesToProcess.Keys)
+			var item = new CacheItem(fullPath, fullPath);
+
+			// cachitem policy
+			// Call back when removed from cache. 
+			// expiration => If cacheIetem not updated for 2 seconds the ProcessFile method will be called.
+			var policy = new CacheItemPolicy
 			{
-				if (FilesToProcess.TryRemove(fileName, out _))
-				{
-					new FileProcessor(fileName).Process();
-				}
+				RemovedCallback = ProcessFile,
+				SlidingExpiration = TimeSpan.FromSeconds(2)
+			};
+
+			FilesToProcess.Add(item, policy);
+		}
+
+		/// <summary>
+		/// Will be called when the CacheItem expires
+		/// </summary>
+		/// <param name="arguments">Access to the cache item property</param>
+
+		private static void ProcessFile(CacheEntryRemovedArguments arguments)
+		{
+			WriteLine($"* Cache item removed: {arguments.CacheItem.Key} because {arguments.RemovedReason}");
+
+			// if expiration was the reason for removal, then we had no duplicate events in the
+			// last two seconds for the filename, safe to process
+			if (arguments.RemovedReason == CacheEntryRemovedReason.Expired)
+			{
+				var fileProcessor = new FileProcessor(arguments.CacheItem.Key);
+				fileProcessor.Process();
+			}
+			else
+			{
+				WriteLine($"Warning: {arguments.CacheItem.Key} was removed unexpectedly and may not be processed because {arguments.RemovedReason}");
 			}
 		}
+
+
+
+		private static void ProcessExistingFiles(string inputDirectory)
+		{
+			WriteLine($"Checking {inputDirectory} for existing files");
+
+			// add the items to the cache.
+			// will be automatically handled when the item expires.
+			foreach (var filePath in Directory.EnumerateFiles(inputDirectory))
+			{
+				WriteLine($" - Found {filePath}");
+				AddToCache(filePath);
+			}
+		}
+
+
+
+
+		//private static void ProcessFiles(object stateInfo)
+		//{
+		//	foreach (var fileName in FilesToProcess.Keys)
+		//	{
+		//		if (FilesToProcess.TryRemove(fileName, out _))
+		//		{
+		//			new FileProcessor(fileName).Process();
+		//		}
+		//	}
+		//}
 
 
 		//private static void ProcessDirectory(string directoryPath, string fileType)
