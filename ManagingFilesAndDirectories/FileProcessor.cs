@@ -79,6 +79,10 @@ namespace ManagingFilesAndDirectories
 					var binaryProcessor = new BinaryFileProcessor(inProgressFilePath, completedFilePath);
 					binaryProcessor.Process();
 					break;
+				case ".csv":
+					var csvProcessor = new CsvFileProcessor(inProgressFilePath, completedFilePath);
+					csvProcessor.Process();
+					break;
 				default:
 					WriteLine($"{extension} is an unsupported file type.");
 					break;
