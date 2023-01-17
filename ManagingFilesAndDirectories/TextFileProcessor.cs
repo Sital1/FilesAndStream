@@ -19,15 +19,30 @@ namespace ManagingFilesAndDirectories
 
 		public void Process()
 		{
-			// Using read all text to read in a single string
-			//string originalText = File.ReadAllText(InputFilePath);
-			//string processedText = originalText.ToUpperInvariant();
-			//File.WriteAllText(OutputFilePath, processedText);
+			// using stream with readers and writers
+			//using var inputFileStream = new FileStream(InputFilePath, FileMode.Open);
+			using StreamReader inputStreamReader = File.OpenText(InputFilePath);
 
-			//reading as an array of string
-			string[] lines = File.ReadAllLines(InputFilePath);
-			lines[1] = lines[1].ToUpperInvariant();
-			File.WriteAllLines(OutputFilePath, lines);
+			using var outputFileStream = new FileStream(OutputFilePath, FileMode.CreateNew);
+			using var outputStreamWriter = new StreamWriter(outputFileStream);
+
+			while (!inputStreamReader.EndOfStream)
+			{
+				string inputLine = inputStreamReader.ReadLine();
+				string processedLine = inputLine.ToUpperInvariant();
+				outputStreamWriter.WriteLine(processedLine);
+			}
+
+
+			//// Using read all text to read in a single string
+			////string originalText = File.ReadAllText(InputFilePath);
+			////string processedText = originalText.ToUpperInvariant();
+			////File.WriteAllText(OutputFilePath, processedText);
+
+			////reading as an array of string
+			//string[] lines = File.ReadAllLines(InputFilePath);
+			//lines[1] = lines[1].ToUpperInvariant();
+			//File.WriteAllLines(OutputFilePath, lines);
 		}
 	}
 }
