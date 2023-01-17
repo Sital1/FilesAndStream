@@ -60,43 +60,47 @@ namespace ManagingFilesAndDirectories
 
 			// Determine type of file
 			string extension = Path.GetExtension(InputFilePath);
-
-			switch (extension)
-			{
-				case ".txt":
-					ProcessTextFile(inProgressFilePath);
-					break;
-				default:
-					WriteLine($"{extension} is an unsupported file type.");
-					break;
-			}
-
-			// Move file after processing is complete
 			string completedDirectoryPath = Path.Combine(rootDirectoryPath, CompletedDirectoryName);
 			Directory.CreateDirectory(completedDirectoryPath);
 			WriteLine($"Moving {inProgressFilePath} to {completedDirectoryPath}");
-			//File.Move(inProgressFilePath, Path.Combine(completedDirectoryPath, inputFileName));
-
 			string completedFileName =
 				$"{Path.GetFileNameWithoutExtension(InputFilePath)}-{Guid.NewGuid()}{extension}";
 
 			//completedFileName = Path.ChangeExtension(completedFileName, ".complete");
 
 			var completedFilePath = Path.Combine(completedDirectoryPath, completedFileName);
+			switch (extension)
+			{
+				case ".txt":
+					var textProcessor = new TextFileProcessor(inProgressFilePath, completedFilePath);
+					textProcessor.Process();
+					break;
+				case ".data":
+					var binaryProcessor = new BinaryFileProcessor(inProgressFilePath, completedFilePath);
+					binaryProcessor.Process();
+					break;
+				default:
+					WriteLine($"{extension} is an unsupported file type.");
+					break;
+			}
 
-			File.Move(inProgressFilePath, completedFilePath);
+			WriteLine($"Completed processing of {inProgressFilePath}");
+			WriteLine($"Deleting {inProgressFilePath}");
+			File.Delete(inProgressFilePath);
+			// Move file after processing is complete
 
-			string inProgressDirectoryPath = Path.GetDirectoryName(inProgressFilePath);
+			//File.Move(inProgressFilePath, Path.Combine(completedDirectoryPath, inputFileName));
+
 
 			// this may cause error when processing multiple files at the same time.
 			// one file process deletes this directory which means, the other cannot acess it
 			//Directory.Delete(inProgressDirectoryPath, true);
 		}
 
-		private void ProcessTextFile(string inProgressFilePath)
-		{
-			WriteLine($"Processing text file {inProgressFilePath}");
-			// Read in and process
-		}
+		//private void ProcessTextFile(string inProgressFilePath)
+		//{
+		//	WriteLine($"Processing text file {inProgressFilePath}");
+		//	// Read in and process
+		//}
 	}
 }
