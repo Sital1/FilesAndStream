@@ -1,28 +1,35 @@
-﻿using CsvHelper.Configuration;
-using CsvHelper;
+﻿using CsvHelper;
+using CsvHelper.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.IO.Abstractions;
 
 namespace ManagingFilesAndDirectories
 {
 	class CsvFileProcessor
 	{
+		private readonly IFileSystem _fileSystem;
 		public string InputFilePath { get; }
 		public string OutputFilePath { get; }
 
-		public CsvFileProcessor(string inputFilePath, string outputFilePath)
+		public CsvFileProcessor(string inputFilePath,
+								string outputFilePath,
+								IFileSystem fileSystem)
 		{
 			InputFilePath = inputFilePath;
 			OutputFilePath = outputFilePath;
+			_fileSystem = fileSystem;
 		}
+
+		public CsvFileProcessor(string inputFilePath, string outputFilePath)
+			: this(inputFilePath, outputFilePath, new FileSystem()) { }
 
 		public void Process()
 		{
-			using StreamReader inputReader = File.OpenText(InputFilePath);
+			using StreamReader inputReader = _fileSystem.File.OpenText(InputFilePath);
 
 			var csvConfiguration = new CsvConfiguration(CultureInfo.InvariantCulture)
 			{
@@ -38,7 +45,7 @@ namespace ManagingFilesAndDirectories
 
 			IEnumerable<ProcessedOrder> records = csvReader.GetRecords<ProcessedOrder>();
 
-			using StreamWriter output = File.CreateText(OutputFilePath);
+			using StreamWriter output = _fileSystem.File.CreateText(OutputFilePath);
 			using var csvWriter = new CsvWriter(output, CultureInfo.InvariantCulture);
 
 			// csvWriter.WriteRecords(records);
